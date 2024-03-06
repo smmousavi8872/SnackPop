@@ -31,8 +31,8 @@ class SnackPopView : FrameLayout {
     private var hasAction: Boolean = false
     private var cancelable: Boolean = true
 
-    @SnackType
-    private var snackType: Type? = null
+    @SnackTypeScope
+    private var snackType: SnackPopType? = null
 
     @SnackDuration
     private var length = DURATION_MIDDLE
@@ -58,7 +58,7 @@ class SnackPopView : FrameLayout {
 
     private fun makeSnack(
         message: CharSequence,
-        @SnackType type: Type,
+        @SnackTypeScope type: SnackPopType,
     ): SnackPopView {
         this.snackMessage = message
         this.snackType = type
@@ -70,7 +70,10 @@ class SnackPopView : FrameLayout {
         return this
     }
 
-    private fun action(actionTitle: CharSequence?, toastAction: (() -> Unit)? = null): SnackPopView {
+    private fun action(
+        actionTitle: CharSequence?,
+        toastAction: (() -> Unit)? = null
+    ): SnackPopView {
         this.hasAction = true
         this.actionTitle = actionTitle
         this.snackClickAction = toastAction
@@ -317,28 +320,28 @@ class SnackPopView : FrameLayout {
         @DrawableRes
         abstract fun icon(): Int
 
-        @SnackType
+        @SnackTypeScope
         object Inform : Type() {
             override fun icon(): Int {
                 return R.drawable.ic_toast_inform
             }
         }
 
-        @SnackType
+        @SnackTypeScope
         object Warning : Type() {
             override fun icon(): Int {
                 return R.drawable.ic_toast_warning
             }
         }
 
-        @SnackType
+        @SnackTypeScope
         object Error : Type() {
             override fun icon(): Int {
                 return R.drawable.ic_toast_error
             }
         }
 
-        @SnackType
+        @SnackTypeScope
         object Done : Type() {
             override fun icon(): Int {
                 return R.drawable.ic_toast_done
