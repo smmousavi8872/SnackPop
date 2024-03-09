@@ -6,8 +6,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.github.smmousavi.snackpop.snackpop.SnackPopType
-import com.github.smmousavi.snackpop.snackpop.SnackTypeScope
+import com.github.smmousavi.snackpop.snackpop.params.SnackType
+import com.github.smmousavi.snackpop.snackpop.params.SnackTypeScope
 
 class Components {
 
@@ -15,11 +15,12 @@ class Components {
     @Preview
     fun SnackPopView(
         modifier: Modifier = Modifier,
-        @SnackTypeScope type: SnackPopType.SnackType = SnackPopType.Done
+        @SnackTypeScope type: SnackType.Type = SnackType.Done
     ) {
         Surface(modifier = modifier) {
             Row {
                 Column {
+                   
 
                 }
             }

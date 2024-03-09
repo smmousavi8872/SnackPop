@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">SnackPop</string>
-    <string name="txt_warning">هشدار</string>
+    <string name="txt_warning_title">هشدار</string>
+    <string name="txt_error_title">خطا</string>
+    <string name="txt_done_title">موفق</string>
+    <string name="txt_inform_title">اطلاع</string>
 </resources>

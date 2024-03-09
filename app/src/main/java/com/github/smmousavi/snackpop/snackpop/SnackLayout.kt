@@ -11,20 +11,23 @@ import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ProgressBar
-import androidx.annotation.DrawableRes
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.appcompat.widget.AppCompatTextView
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.FragmentActivity
 import androidx.viewbinding.ViewBinding
 import com.github.smmousavi.snackpop.R
+import com.github.smmousavi.snackpop.snackpop.params.SnackAnimDuration
+import com.github.smmousavi.snackpop.snackpop.params.SnackAnimDurationScope
+import com.github.smmousavi.snackpop.snackpop.params.SnackDismissDuration
+import com.github.smmousavi.snackpop.snackpop.params.SnackDismissDurationScope
+import com.github.smmousavi.snackpop.snackpop.params.SnackType
+import com.github.smmousavi.snackpop.snackpop.params.SnackTypeScope
 import java.util.UUID
 
-class SnackPopView : FrameLayout {
+class SnackLayout : FrameLayout {
 
     private val id: UUID = UUID.randomUUID()
     private var isShowing: Boolean = false
-    private var rootContext: Context? = null
     private var rootView: ViewGroup? = null
     private var viewBinding: ViewBinding? = null
     private var snackMessage: CharSequence? = null
@@ -32,10 +35,14 @@ class SnackPopView : FrameLayout {
     private var cancelable: Boolean = true
 
     @SnackTypeScope
-    private var snackType: SnackPopType? = null
+    var type: SnackType.Type = SnackType.Done
 
-    @SnackDuration
-    private var length = DURATION_MIDDLE
+    @SnackDismissDurationScope
+    var dismissDuration: SnackDismissDuration.Duration = SnackDismissDuration.SHORT
+
+    @SnackAnimDurationScope
+    var animDuration: SnackAnimDuration.Duration = SnackAnimDuration.SHORT
+
     private var actionTitle: CharSequence? = null
     private var snackClickAction: (() -> Unit)? = null
     private var snackDismissAction: (() -> Unit)? = null
@@ -43,7 +50,6 @@ class SnackPopView : FrameLayout {
 
     private constructor(root: FragmentActivity) : super(root) {
         this.rootView = root.window.decorView.rootView as ViewGroup
-        this.rootContext = rootView?.context
     }
 
     private constructor(context: Context) : super(context)
@@ -58,22 +64,22 @@ class SnackPopView : FrameLayout {
 
     private fun makeSnack(
         message: CharSequence,
-        @SnackTypeScope type: SnackPopType,
-    ): SnackPopView {
+        @SnackTypeScope type: SnackType.Type
+    ): SnackLayout {
         this.snackMessage = message
-        this.snackType = type
+        this.type = type
         return this
     }
 
-    private fun duration(@SnackDuration length: Int): SnackPopView {
-        this.length = length
+    private fun duration(@SnackDismissDurationScope duration: SnackDismissDuration.Duration): SnackLayout {
+        this.dismissDuration = duration
         return this
     }
 
     private fun action(
         actionTitle: CharSequence?,
         toastAction: (() -> Unit)? = null
-    ): SnackPopView {
+    ): SnackLayout {
         this.hasAction = true
         this.actionTitle = actionTitle
         this.snackClickAction = toastAction
@@ -88,7 +94,7 @@ class SnackPopView : FrameLayout {
         }
     }
 
-    private fun cancel(toastCancel: (() -> Unit)? = null): SnackPopView {
+    private fun cancel(toastCancel: (() -> Unit)? = null): SnackLayout {
         this.snackDismissAction = toastCancel
         return this
     }
@@ -107,7 +113,7 @@ class SnackPopView : FrameLayout {
 
     private fun inflateToastActionLayout() {
         viewBinding =
-            ViewTaaghcheToastActionBinding.inflate(LayoutInflater.from(rootContext)).also {
+            ViewTaaghcheToastActionBinding.inflate(LayoutInflater.from(context)).also {
                 it.txtToastAction.setOnClickListener {
                     snackClickAction?.invoke()
                     dismiss()
@@ -118,7 +124,7 @@ class SnackPopView : FrameLayout {
     }
 
     private fun inflateToastLayout() {
-        viewBinding = ViewTaaghcheToastBinding.inflate(LayoutInflater.from(rootContext))
+        viewBinding = ViewTaaghcheToastBinding.inflate(LayoutInflater.from(context))
         initializeToastView()
     }
 
@@ -126,13 +132,13 @@ class SnackPopView : FrameLayout {
         val toastTitle = viewBinding?.root?.findViewById<AppCompatTextView?>(R.id.txtToastTitle)
         val toastIcon = viewBinding?.root?.findViewById<AppCompatImageView?>(R.id.imgToastIcon)
         toastTitle?.text = snackMessage
-        snackType?.icon()?.let { toastIcon?.setImageResource(it) }
+        type.icon(context).let { toastIcon?.setImageResource(it) }
         val parentParams = LayoutParams(
             LayoutParams.MATCH_PARENT,
             LayoutParams.WRAP_CONTENT
         )
         parentParams.gravity = Gravity.TOP
-        val sideMargin = PresentationUtils.convertDpToPixel(32f, rootContext)
+        val sideMargin = UiUtils.convertDpToPixel(32f, context)
         parentParams.setMargins(sideMargin, 0, sideMargin, 0)
         layoutParams = parentParams
         addSwipeActions()
@@ -141,9 +147,9 @@ class SnackPopView : FrameLayout {
 
     private fun addSwipeActions() {
         setOnTouchListener(object :
-            SwipeTouchListener(rootContext!!) {
+            SwipeTouchListener(context) {
             override fun rootView(): FrameLayout {
-                return this@SnackPopView
+                return this@SnackLayout
             }
 
             override fun onSingleTap() {
@@ -180,7 +186,7 @@ class SnackPopView : FrameLayout {
         })
     }
 
-    private fun startToastTimer(@SnackDuration duration: Int) {
+    private fun startToastTimer(@SnackDismissDurationScope duration: Int) {
         val toastTimer = viewBinding?.root?.findViewById<ProgressBar?>(R.id.prgToastTimer)
         toastTimer?.max = duration
         val animation: ObjectAnimator =
@@ -206,19 +212,13 @@ class SnackPopView : FrameLayout {
         }
     }
 
-    private fun isViewAttached(): Boolean {
-        val found =
-            rootView?.findViewById<ConstraintLayout?>(R.id.clTaaghcheToastRoot)
-        return found != null
-    }
-
     private fun startShowAnimation() {
-        val distance = PresentationUtils.getStatusBarHeight(rootContext) +
-                PresentationUtils.convertDpToPixel(68f, rootContext)
+        val distance = UiUtils.getStatusBarHeight(context) +
+                UiUtils.convertDpToPixel(68f, context)
         attachView()
         alpha = 0.0f
         animate()
-            .setDuration(ANIM_LENGTH)
+            .setDuration(animDuration.value)
             .translationY(distance.toFloat())
             .alpha(1.0f)
             .setListener(object : AnimatorListener {
@@ -227,7 +227,7 @@ class SnackPopView : FrameLayout {
 
                 override fun onAnimationEnd(animation: Animator) {
                     if (!hasAction) {
-                        startToastTimer(length)
+                        startToastTimer(dismissDuration.value)
                     }
                 }
 
@@ -242,7 +242,7 @@ class SnackPopView : FrameLayout {
     private fun startDismissAnimation(onDismiss: () -> Unit) {
         alpha = 1.0f
         animate()
-            .setDuration(ANIM_LENGTH)
+            .setDuration(animDuration.value)
             .translationY(0f)
             .alpha(0.0f)
             .setListener(object : AnimatorListener {
@@ -264,7 +264,7 @@ class SnackPopView : FrameLayout {
     private fun startSwipeRightDismissAnimation(onDismiss: () -> Unit) {
         alpha = 1.0f
         animate()
-            .setDuration(ANIM_LENGTH)
+            .setDuration(animDuration.value)
             .translationX(SWIPE_RIGHT_DIST)
             .alpha(0.0f)
             .setListener(object : AnimatorListener {
@@ -286,7 +286,7 @@ class SnackPopView : FrameLayout {
     private fun startSwipeLeftDismissAnimation(onDismiss: () -> Unit) {
         alpha = 1.0f
         animate()
-            .setDuration(ANIM_LENGTH)
+            .setDuration(animDuration.value)
             .translationX(SWIPE_LEFT_DIST)
             .alpha(0.0f)
             .setListener(object : AnimatorListener {
@@ -312,115 +312,45 @@ class SnackPopView : FrameLayout {
 
     private fun detachView() {
         isShowing = false
-        rootView?.removeView(this@SnackPopView)
+        rootView?.removeView(this@SnackLayout)
     }
 
-    sealed class Type {
-
-        @DrawableRes
-        abstract fun icon(): Int
-
-        @SnackTypeScope
-        object Inform : Type() {
-            override fun icon(): Int {
-                return R.drawable.ic_toast_inform
-            }
-        }
-
-        @SnackTypeScope
-        object Warning : Type() {
-            override fun icon(): Int {
-                return R.drawable.ic_toast_warning
-            }
-        }
-
-        @SnackTypeScope
-        object Error : Type() {
-            override fun icon(): Int {
-                return R.drawable.ic_toast_error
-            }
-        }
-
-        @SnackTypeScope
-        object Done : Type() {
-            override fun icon(): Int {
-                return R.drawable.ic_toast_done
-            }
-        }
-    }
-
-    companion object {
-        private const val SWIPE_LEFT_DIST = -700F
-        private const val SWIPE_RIGHT_DIST = 700F
-
-        private const val ANIM_LENGTH = 200L
-
-        @SnackDuration
-        const val DURATION_LONG = 5000
-
-        @SnackDuration
-        const val DURATION_MIDDLE = 3000
-
-        @SnackDuration
-        const val DURATION_SHORT = 1500
-    }
 
     object Builder {
 
         private var toastId: UUID? = null
-        private val snackPopViewQueue = ArrayList<SnackPopView>()
+        private val snackPopLayoutQueue = ArrayList<SnackLayout>()
 
-        fun buildDone(
-            rootActivity: FragmentActivity,
-            message: CharSequence
-        ): Builder {
-            val snackPopView = SnackPopView(rootActivity).makeSnack(message, Type.Done)
-            initBuilder(snackPopView)
-            return this
-        }
-
-        fun buildInform(
-            rootActivity: FragmentActivity,
-            message: CharSequence
-        ): Builder {
-            val snackPopView = SnackPopView(rootActivity).makeSnack(message, Type.Inform)
-            initBuilder(snackPopView)
-            return this
-        }
-
-        fun buildWarning(
-            rootActivity: FragmentActivity,
-            message: CharSequence
-        ): Builder {
-            val snackPopView = SnackPopView(rootActivity).makeSnack(message, Type.Warning)
-            initBuilder(snackPopView)
-            return this
-        }
-
-        fun buildError(
-            rootActivity: FragmentActivity,
-            message: CharSequence
-        ): Builder {
-            val snackPopView = SnackPopView(rootActivity).makeSnack(message, Type.Error)
-            initBuilder(snackPopView)
-            return this
-        }
-
-        private fun initBuilder(snackPopView: SnackPopView) {
-            toastId = snackPopView.id
-            snackPopViewQueue.add(snackPopView)
-            snackPopView.popQueueActions = {
-                if (snackPopViewQueue.size > 0) {
-                    snackPopViewQueue.removeAt(0)
+        private fun initBuilder(snackPopLayout: SnackLayout) {
+            toastId = snackPopLayout.id
+            snackPopLayoutQueue.add(snackPopLayout)
+            snackPopLayout.popQueueActions = {
+                if (snackPopLayoutQueue.size > 0) {
+                    snackPopLayoutQueue.removeAt(0)
                 }
-                if (snackPopViewQueue.size > 0) {
+                if (snackPopLayoutQueue.size > 0) {
                     show()
                 }
             }
         }
 
-        fun duration(@SnackDuration length: Int): Builder {
-            currentToast().duration(length)
+        private fun currentToast(): SnackLayout {
+            return snackPopLayoutQueue.filter { it.id == toastId }[0]
+        }
+
+        fun makeByType(
+            @SnackTypeScope type: SnackType.Type,
+            rootActivity: FragmentActivity,
+            message: CharSequence
+        ): Builder {
+            SnackLayout(rootActivity).makeSnack(message, type).also {
+                initBuilder(it)
+            }
+            return this
+        }
+
+        fun duration(@SnackDismissDurationScope duration: SnackDismissDuration.Duration): Builder {
+            currentToast().duration(duration)
             return this
         }
 
@@ -440,13 +370,14 @@ class SnackPopView : FrameLayout {
         }
 
         fun show() {
-            if (snackPopViewQueue[0].isShowing.not()) {
-                snackPopViewQueue[0].show()
+            if (snackPopLayoutQueue[0].isShowing.not()) {
+                snackPopLayoutQueue[0].show()
             }
         }
+    }
 
-        private fun currentToast(): SnackPopView {
-            return snackPopViewQueue.filter { it.id == toastId }[0]
-        }
+    companion object {
+        private const val SWIPE_LEFT_DIST = -700F
+        private const val SWIPE_RIGHT_DIST = 700F
     }
 }
