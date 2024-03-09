@@ -3,10 +3,9 @@ package com.github.smmousavi.snackpop.snackpop
 import android.animation.Animator
 import android.animation.Animator.AnimatorListener
 import android.animation.ObjectAnimator
-import android.content.Context
-import android.util.AttributeSet
 import android.view.Gravity
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
@@ -14,7 +13,6 @@ import android.widget.ProgressBar
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.fragment.app.FragmentActivity
-import androidx.viewbinding.ViewBinding
 import com.github.smmousavi.snackpop.R
 import com.github.smmousavi.snackpop.snackpop.params.SnackAnimDuration
 import com.github.smmousavi.snackpop.snackpop.params.SnackAnimDurationScope
@@ -24,15 +22,15 @@ import com.github.smmousavi.snackpop.snackpop.params.SnackType
 import com.github.smmousavi.snackpop.snackpop.params.SnackTypeScope
 import java.util.UUID
 
-class SnackLayout : FrameLayout {
+open class SnackLayout(private val activity: FragmentActivity) {
 
     private val id: UUID = UUID.randomUUID()
     private var isShowing: Boolean = false
-    private var rootView: ViewGroup? = null
-    private var viewBinding: ViewBinding? = null
     private var snackMessage: CharSequence? = null
     private var hasAction: Boolean = false
     private var cancelable: Boolean = true
+    private var _layout: View? = null
+    private val layout get() = _layout!!
 
     @SnackTypeScope
     var type: SnackType.Type = SnackType.Done
@@ -48,19 +46,6 @@ class SnackLayout : FrameLayout {
     private var snackDismissAction: (() -> Unit)? = null
     private var popQueueActions: (() -> Unit)? = null
 
-    private constructor(root: FragmentActivity) : super(root) {
-        this.rootView = root.window.decorView.rootView as ViewGroup
-    }
-
-    private constructor(context: Context) : super(context)
-
-    private constructor(context: Context, attrs: AttributeSet) : super(context, attrs)
-
-    private constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int) : super(
-        context,
-        attrs,
-        defStyleAttr
-    )
 
     private fun makeSnack(
         message: CharSequence,
@@ -113,7 +98,7 @@ class SnackLayout : FrameLayout {
 
     private fun inflateToastActionLayout() {
         viewBinding =
-            ViewTaaghcheToastActionBinding.inflate(LayoutInflater.from(context)).also {
+            ViewTaaghcheToastActionBinding.inflate(LayoutInflater.from(activity)).also {
                 it.txtToastAction.setOnClickListener {
                     snackClickAction?.invoke()
                     dismiss()
@@ -307,12 +292,12 @@ class SnackLayout : FrameLayout {
 
     private fun attachView() {
         isShowing = true
-        rootView?.addView(this)
+        (activity.window.decorView.rootView as ViewGroup).addView(layout)
     }
 
     private fun detachView() {
         isShowing = false
-        rootView?.removeView(this@SnackLayout)
+        (activity.window.decorView.rootView as ViewGroup).removeView(layout)
     }
 
 
